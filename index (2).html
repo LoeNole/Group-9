@@ -207,7 +207,6 @@
         studentNames: document.getElementById('studentNames'),
         deskCount: document.getElementById('deskCount'),
         classroom: document.getElementById('classroom'),
-        studentList: document.getElementById('studentList'),
         generateSeats: document.getElementById('generateSeats'),
         saveLayout: document.getElementById('saveLayout'),
         loadLayout: document.getElementById('loadLayout'),
@@ -226,21 +225,9 @@
     elements.exportPNG.addEventListener('click', exportAsPNG);
     elements.exportPDF.addEventListener('click', exportAsPDF);
 
-    // Initialize
-    updateStudentList();
-
     function updateStudentList() {
-        elements.studentList.innerHTML = '';
         const currentNames = elements.studentNames.value.split('\n').map(name => name.trim()).filter(Boolean);
-        
         students = currentNames.map(name => ({ name }));
-        
-        students.forEach((student) => {
-            const div = document.createElement('div');
-            div.className = 'student-item';
-            div.innerHTML = `<span>${student.name}</span>`;
-            elements.studentList.appendChild(div);
-        });
     }
 
     function generateRandomSeating() {
@@ -294,7 +281,6 @@
         elements.deskCount.value = layout.deskCount || 30;
         elements.studentNames.value = students.map(s => s.name).join('\n');
         elements.classroom.innerHTML = layout.html || '';
-        updateStudentList();
         alert('Layout loaded!');
     }
 
@@ -322,7 +308,6 @@
         });
     }
 });
-
     </script>
 
     </body>
