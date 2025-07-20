@@ -25,7 +25,7 @@
             gap: 20px;
         }
         
-        .input-section, .constraints-section, .classroom-section, .feedback-section {
+        .input-section, .classroom-section, .feedback-section {
             background: white;
             padding: 20px;
             border-radius: 8px;
@@ -142,12 +142,6 @@
             border-color: #da4453;
         }
         
-        .constraint-pair {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        
         .constraint-pair select {
             flex: 1;
             padding: 8px;
@@ -174,12 +168,6 @@
             <h2>Student List</h2>
             <textarea id="studentNames" rows="5" placeholder="Enter student names, one per line"></textarea>
             <div id="studentList" class="student-list"></div>
-        </div>
-        
-        <div class="constraints-section">
-            <h2>Seating Constraints</h2>
-            <div id="constraintsContainer">
-                </div>
         </div>
     </div>
     
@@ -219,7 +207,6 @@
     const deskCountInput = document.getElementById('deskCount');
     const classroomDiv = document.getElementById('classroom');
     const studentListDiv = document.getElementById('studentList');
-    const constraintsContainer = document.getElementById('constraintsContainer'); // Still exists but its content is largely unused now
     const feedbackSection = document.getElementById('feedbackSection');
     
     // --- Data Storage ---
