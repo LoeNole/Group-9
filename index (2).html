@@ -201,14 +201,13 @@
         </div>
 
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function() {
     // Cache DOM elements
     const elements = {
         studentNames: document.getElementById('studentNames'),
         deskCount: document.getElementById('deskCount'),
         classroom: document.getElementById('classroom'),
         studentList: document.getElementById('studentList'),
-        feedbackSection: document.getElementById('feedbackSection'),
         generateSeats: document.getElementById('generateSeats'),
         saveLayout: document.getElementById('saveLayout'),
         loadLayout: document.getElementById('loadLayout'),
@@ -255,7 +254,6 @@
         }
         
         renderSeats(shuffled);
-        elements.feedbackSection.classList.remove('hidden');
     }
 
     function renderSeats(studentArrangement) {
@@ -297,10 +295,6 @@
         elements.studentNames.value = students.map(s => s.name).join('\n');
         elements.classroom.innerHTML = layout.html || '';
         updateStudentList();
-        
-        if (elements.classroom.children.length) {
-            elements.feedbackSection.classList.remove('hidden');
-        }
         alert('Layout loaded!');
     }
 
@@ -328,7 +322,7 @@
         });
     }
 });
-        
-   </script>
-</body>
-    </html>
+
+    </body>
+        </html>
+    
