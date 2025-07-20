@@ -109,8 +109,37 @@
             border-radius: 4px;
         }
         
+        .gender-toggle {
+            margin-left: 10px;
+            padding: 5px 10px;
+            font-size: 12px;
+            border: 1px solid #ddd;
+            background-color: #f5f5f5;
+            color: #333;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
         .gender-toggle.selected {
             color: white;
+        }
+        
+        .gender-toggle.boy {
+            background-color: #f5f5f5;
+        }
+        
+        .gender-toggle.boy.selected {
+            background-color: #4a89dc;
+            border-color: #3a70c2;
+        }
+        
+        .gender-toggle.girl {
+            background-color: #f5f5f5;
+        }
+        
+        .gender-toggle.girl.selected {
+            background-color: #ed5565;
+            border-color: #da4453;
         }
         
         .constraint-pair {
@@ -132,7 +161,6 @@
             display: none;
         }
     </style>
-    <!-- Add html2canvas and pdfmake libraries -->
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/pdfmake.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/vfs_fonts.js"></script>
@@ -145,11 +173,14 @@
         <div class="input-section">
             <h2>Student List</h2>
             <textarea id="studentNames" rows="5" placeholder="Enter student names, one per line"></textarea>
-            <button id="loadDemo">Load Demo Class</button>
             <div id="studentList" class="student-list"></div>
         </div>
         
-        <
+        <div class="constraints-section">
+            <h2>Seating Constraints</h2>
+            <div id="constraintsContainer">
+                </div>
+        </div>
     </div>
     
     <div class="classroom-section">
@@ -168,6 +199,19 @@
         <div id="classroom" class="classroom-layout"></div>
     </div>
     
+    <div id="feedbackSection" class="feedback-section hidden">
+        <h2>Teacher Feedback</h2>
+        <p>How effective was this seating arrangement?</p>
+        <select id="effectivenessRating">
+            <option value="5">Very Effective</option>
+            <option value="4">Effective</option>
+            <option value="3">Neutral</option>
+            <option value="2">Ineffective</option>
+            <option value="1">Very Ineffective</option>
+        </select>
+        <textarea id="feedbackComments" placeholder="Additional comments..." rows="4"></textarea>
+        </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // DOM elements
@@ -176,19 +220,18 @@
             const classroom = document.getElementById('classroom');
             const studentList = document.getElementById('studentList');
             const constraintsContainer = document.getElementById('constraintsContainer');
+            const feedbackSection = document.getElementById('feedbackSection');
             
             // Data storage
             let students = [];
-            let constraints = [];
+            let constraints = []; // Constraints array will still exist, but no UI to add them
             
             // Initialize
             updateStudentSelects();
             
             // Event listeners
             studentNames.addEventListener('input', updateStudentList);
-            document.getElementById('loadDemo').addEventListener('click', loadDemoClass);
             document.getElementById('generateSeats').addEventListener('click', generateRandomSeating);
-            document.getElementById('addConstraint').addEventListener('click', addConstraint);
             document.getElementById('saveLayout').addEventListener('click', saveLayout);
             document.getElementById('loadLayout').addEventListener('click', loadLayout);
             document.getElementById('exportPNG').addEventListener('click', exportAsPNG);
@@ -211,11 +254,24 @@
                 students.forEach((student, index) => {
                     const div = document.createElement('div');
                     div.className = 'student-item';
-                    div.innerHTML = `<span>${student.name}</span>`;
+                    div.innerHTML = `
+                        <span>${student.name}</span>
+                        <button class="gender-toggle boy" data-index="${index}" data-gender="boy">Boy</button>
+                        <button class="gender-toggle girl" data-index="${index}" data-gender="girl">Girl</button>
+                    `;
                     studentList.appendChild(div);
+                    
+                    // Set initial button states
+                    const boyBtn = div.querySelector('.boy');
+                    const girlBtn = div.querySelector('.girl');
+                    
+                    boyBtn.classList.toggle('selected', student.gender === 'boy');
+                    girlBtn.classList.toggle('selected', student.gender === 'girl');
                 });
                 
                 // Add gender toggle events
+                document.querySelectorAll('.gender-toggle').forEach(button => {
+                    button.addEventListener('click', function() {
                         const index = parseInt(this.dataset.index);
                         const gender = this.dataset.gender;
                         
@@ -252,17 +308,10 @@
                 });
             }
             
-            function loadDemoClass() {
-                const demoStudents = [
-                    "Emma Johnson", "Liam Smith", "Olivia Williams", "Noah Brown", "Ava Jones",
-                    "William Garcia", "Sophia Miller", "Benjamin Davis", "Isabella Rodriguez"
-                ];
-                studentNames.value = demoStudents.join('\n');
-                updateStudentList();
-            }
+            // loadDemoClass function removed
             
             function generateRandomSeating() {
-                updateConstraints();
+                // updateConstraints(); // This function call is removed as constraints are no longer added via UI
                 
                 if (students.length === 0) {
                     alert('Please enter student names first');
@@ -276,7 +325,7 @@
                     [shuffledStudents[i], shuffledStudents[j]] = [shuffledStudents[j], shuffledStudents[i]];
                 }
                 
-                // Apply constraints
+                // Apply constraints (logic still present but constraints array will be empty if not loaded)
                 let attempts = 0;
                 const maxAttempts = 100;
                 let constraintsViolated = true;
@@ -300,13 +349,15 @@
                     attempts++;
                 }
                 
-                if (constraintsViolated) {
+                if (constraintsViolated && constraints.length > 0) { // Only show warning if there were actual constraints
                     alert('Warning: Could not satisfy all constraints after multiple attempts');
                 }
                 
                 // Render seats
                 renderSeats(shuffledStudents);
                 
+                // Show feedback section
+                feedbackSection.classList.remove('hidden');
             }
             
             function renderSeats(studentArrangement) {
@@ -330,54 +381,18 @@
                     classroom.appendChild(seat);
                 }
                 
-
+                // Show feedback section
+                feedbackSection.classList.remove('hidden');
             }
             
-            function addConstraint() {
-                const pair = document.createElement('div');
-                pair.className = 'constraint-pair';
-                
-                const select1 = document.createElement('select');
-                select1.className = 'student-select';
-                
-                const select2 = document.createElement('select');
-                select2.className = 'student-select';
-                
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'remove-constraint';
-                removeBtn.textContent = '×';
-                removeBtn.addEventListener('click', function() {
-                    constraintsContainer.removeChild(pair);
-                    updateConstraints();
-                });
-                
-                pair.appendChild(select1);
-                pair.appendChild(select2);
-                pair.appendChild(removeBtn);
-                constraintsContainer.appendChild(pair);
-                
-                updateStudentSelects();
-            }
+            // addConstraint function removed
             
-            function updateConstraints() {
-                constraints = [];
-                const pairs = document.querySelectorAll('.constraint-pair');
-                
-                pairs.forEach(pair => {
-                    const selects = pair.querySelectorAll('select');
-                    const student1 = selects[0].value;
-                    const student2 = selects[1].value;
-                    
-                    if (student1 && student2 && student1 !== student2) {
-                        constraints.push([student1, student2]);
-                    }
-                });
-            }
+            // updateConstraints function removed
             
             function saveLayout() {
                 const layout = {
                     students: students,
-                    constraints: constraints,
+                    constraints: constraints, // This will save an empty array if no constraints are loaded/defined
                     deskCount: deskCount.value,
                     html: classroom.innerHTML
                 };
@@ -390,7 +405,7 @@
                 if (saved) {
                     const layout = JSON.parse(saved);
                     students = layout.students;
-                    constraints = layout.constraints || [];
+                    constraints = layout.constraints || []; // Ensure constraints is initialized even if not saved
                     deskCount.value = layout.deskCount;
                     studentNames.value = students.map(s => s.name).join('\n');
                     classroom.innerHTML = layout.html;
@@ -399,6 +414,9 @@
                 } else {
                     alert('No saved layout found');
                 }
+            }
+            
+            // submitFeedback function removed
             
             function exportAsPNG() {
                 if (classroom.children.length === 0) {
@@ -429,4 +447,17 @@
                         ],
                         styles: {
                             header: {
-              
+                                fontSize: 18,
+                                bold: true,
+                                margin: [0, 0, 0, 10]
+                            }
+                        }
+                    };
+                    
+                    pdfMake.createPdf(docDefinition).download('classroom-seating.pdf');
+                });
+            }
+        });
+    </script>
+</body>
+    </html>
