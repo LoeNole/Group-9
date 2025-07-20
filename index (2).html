@@ -218,16 +218,19 @@
     let students = [];
 
     // Event listeners
-    elements.studentNames.addEventListener('input', updateStudentList);
+    elements.studentNames.addEventListener('input', processStudentNames);
     elements.generateSeats.addEventListener('click', generateRandomSeating);
     elements.saveLayout.addEventListener('click', saveLayout);
     elements.loadLayout.addEventListener('click', loadLayout);
     elements.exportPNG.addEventListener('click', exportAsPNG);
     elements.exportPDF.addEventListener('click', exportAsPDF);
 
-    function updateStudentList() {
-        const currentNames = elements.studentNames.value.split('\n').map(name => name.trim()).filter(Boolean);
-        students = currentNames.map(name => ({ name }));
+    function processStudentNames() {
+        students = elements.studentNames.value
+            .split('\n')
+            .map(name => name.trim())
+            .filter(Boolean)
+            .map(name => ({ name }));
     }
 
     function generateRandomSeating() {
