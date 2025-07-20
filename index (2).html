@@ -25,7 +25,7 @@
             gap: 20px;
         }
         
-        .input-section, .classroom-section, .feedback-section {
+        .input-section, .classroom-section,  {
             background: white;
             padding: 20px;
             border-radius: 8px;
@@ -96,19 +96,6 @@
             margin: 20px 0;
         }
         
-        .student-list {
-            margin-top: 10px;
-        }
-        
-        .student-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 5px;
-            padding: 8px;
-            background-color: #f9f9f9;
-            border-radius: 4px;
-        }
-        
         .gender-toggle {
             margin-left: 10px;
             padding: 5px 10px;
@@ -167,7 +154,6 @@
         <div class="input-section">
             <h2>Student List</h2>
             <textarea id="studentNames" rows="5" placeholder="Enter student names, one per line"></textarea>
-            <div id="studentList" class="student-list"></div>
         </div>
     </div>
     
@@ -186,19 +172,6 @@
         </div>
         <div id="classroom" class="classroom-layout"></div>
     </div>
-    
-    <div id="feedbackSection" class="feedback-section hidden">
-        <h2>Teacher Feedback</h2>
-        <p>How effective was this seating arrangement?</p>
-        <select id="effectivenessRating">
-            <option value="5">Very Effective</option>
-            <option value="4">Effective</option>
-            <option value="3">Neutral</option>
-            <option value="2">Ineffective</option>
-            <option value="1">Very Ineffective</option>
-        </select>
-        <textarea id="feedbackComments" placeholder="Additional comments..." rows="4"></textarea>
-        </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
