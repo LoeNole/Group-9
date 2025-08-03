@@ -15,14 +15,11 @@
             background-color: #f5f5f5;
         }
 
-        h1 {
+        h1, h2 {
             color: #2c3e50;
             text-align: center;
         }
-        
-        h2 {
-           color: #2c3e50;
-        }
+        h2 { text-align: left; }
 
         .container {
             display: flex;
@@ -94,7 +91,7 @@
         .seat img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; margin-bottom: 8px; }
         .seat .name { font-size: 12px; font-weight: 500; color: #555; text-align: center; }
         .gap { grid-column: 6; }
-        .hidden { display: none; }
+        .hidden { display: none !important; }
 
         /* Modal Styles */
         .modal-overlay {
@@ -130,7 +127,7 @@
     <div class="container">
         <div class="input-section">
             <h2>Student List</h2>
-            <textarea id="studentNames" rows="5" placeholder="Enter student names, one per line to enable customization."></textarea>
+            <textarea id="studentNames" rows="5" placeholder="Enter student names to enable customization."></textarea>
         </div>
     </div>
     
@@ -150,7 +147,7 @@
         <div id="classroom" class="classroom-layout"></div>
     </div>
 
-    <!-- Customizer Modal HTML -->
+    <!-- FIX: Modal starts hidden and will only be shown via JavaScript -->
     <div id="customizeModal" class="modal-overlay hidden">
         <div class="modal-content">
             <button id="modalClose" class="modal-close">×</button>
@@ -180,6 +177,7 @@
             };
 
             let students = [];
+            let currentLayout = [];
 
             elements.generateSeats.addEventListener('click', generateRandomSeating);
             elements.customizeProfiles.addEventListener('click', openCustomizeModal);
@@ -194,48 +192,47 @@
             function loadDemoSection(sectionName, imageSeed) {
                 students = [];
                 for (let i = 1; i <= 50; i++) {
-                    students.push({ name: `${sectionName} Student ${i}`, id: imageSeed + i });
+                    students.push({ name: `${sectionName} Student ${i}`, id: imageSeed + i, isDemo: true });
                 }
+                currentLayout = [...students];
                 elements.deskCount.value = 50;
                 elements.studentNames.value = '';
                 elements.layoutTitle.textContent = `${sectionName} - Demo Layout`;
-                elements.customizeProfiles.classList.add('hidden');
-                renderLayout(students, true);
+                elements.customizeProfiles.classList.add('hidden'); // FIX: Ensure customize button is hidden for demos
+                renderLayout(currentLayout);
                 alert(`${sectionName} demo loaded. Click 'Generate Random Seating' to shuffle.`);
             }
 
             function generateRandomSeating() {
                 const isCustomList = elements.studentNames.value.trim() !== '';
+                
                 if (isCustomList) {
-                    students = elements.studentNames.value.split('\n').map(name => name.trim()).filter(Boolean)
-                               .map(name => {
-                                   const existing = students.find(s => s.name === name);
-                                   return existing && existing.imageData ? existing : { name };
-                               });
+                    // Update student list from textarea, preserving existing image data
+                    const namesFromText = elements.studentNames.value.trim().split('\n').map(name => name.trim());
+                    students = namesFromText.map(name => {
+                        const existingStudent = students.find(s => s.name === name && !s.isDemo);
+                        return existingStudent || { name: name, isDemo: false };
+                    });
                     elements.layoutTitle.textContent = 'Custom Seating Plan';
-                    elements.customizeProfiles.classList.remove('hidden');
+                    elements.customizeProfiles.classList.remove('hidden'); // Show customize button
                 } else if (students.length === 0) {
                     return alert('Please enter student names or load a demo section first.');
                 }
 
-                let shuffled = [...students];
-                for (let i = shuffled.length - 1; i > 0; i--) {
+                currentLayout = [...students];
+                for (let i = currentLayout.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
-                    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                    [currentLayout[i], currentLayout[j]] = [currentLayout[j], currentLayout[i]];
                 }
                 
-                const isDemo = shuffled[0] && shuffled[0].hasOwnProperty('id');
-                renderLayout(shuffled, isDemo);
+                renderLayout(currentLayout);
             }
             
             function openCustomizeModal() {
-                elements.profileCustomizerList.innerHTML = ''; // Clear previous list
-                students.forEach((student, index) => {
+                elements.profileCustomizerList.innerHTML = '';
+                students.filter(s => !s.isDemo).forEach(student => {
                     const li = document.createElement('li');
-                    li.innerHTML = `
-                        <span>${student.name}</span>
-                        <input type="file" accept="image/*" data-index="${index}" style="font-size: 12px;">
-                    `;
+                    li.innerHTML = `<span>${student.name}</span><input type="file" accept="image/*" data-name="${student.name}" style="font-size: 12px;">`;
                     elements.profileCustomizerList.appendChild(li);
                 });
                 elements.customizeModal.classList.remove('hidden');
@@ -245,18 +242,21 @@
                 if (e.target.tagName === 'INPUT' && e.target.type === 'file') {
                     const file = e.target.files[0];
                     if (!file) return;
-                    const index = e.target.dataset.index;
+                    const studentName = e.target.dataset.name;
+                    const student = students.find(s => s.name === studentName);
                     
-                    const reader = new FileReader();
-                    reader.onload = function(event) {
-                        students[index].imageData = event.target.result; // Save image data to student object
-                        renderLayout(students, false); // Re-render the layout with the new profile
-                    };
-                    reader.readAsDataURL(file);
+                    if (student) {
+                        const reader = new FileReader();
+                        reader.onload = function(event) {
+                            student.imageData = event.target.result;
+                            renderLayout(currentLayout); // Re-render to show the new picture
+                        };
+                        reader.readAsDataURL(file);
+                    }
                 }
             });
 
-            function renderLayout(studentArrangement, isDemo = false) {
+            function renderLayout(studentArrangement) {
                 elements.classroom.innerHTML = '';
                 elements.classroom.className = 'classroom-layout'; 
                 const count = parseInt(elements.deskCount.value) || 50;
@@ -272,13 +272,11 @@
                     const student = studentArrangement[i];
 
                     if (student) {
-                        // Give each seat an ID based on student name for easy selection
-                        seat.dataset.studentName = student.name; 
-                        if (student.imageData) { // Priority 1: Custom uploaded image
+                        if (student.imageData) {
                              seat.innerHTML = `<img src="${student.imageData}" alt="Profile of ${student.name}"><span class="name">${student.name}</span>`;
-                        } else if (isDemo && student.id) { // Priority 2: Demo image
+                        } else if (student.isDemo) {
                             seat.innerHTML = `<img src="https://picsum.photos/seed/${student.id}/100" alt="Profile of ${student.name}"><span class="name">${student.name}</span>`;
-                        } else { // Priority 3: Just the name
+                        } else {
                             seat.textContent = student.name;
                         }
                     } else {
@@ -294,7 +292,8 @@
             function saveLayout() {
                 const layout = {
                     deskCount: elements.deskCount.value,
-                    students: students, // Save the whole students array with image data
+                    students: students,
+                    currentLayout: currentLayout,
                     title: elements.layoutTitle.textContent
                 };
                 localStorage.setItem('classroomLayout', JSON.stringify(layout));
@@ -307,14 +306,15 @@
                 
                 const layout = JSON.parse(saved);
                 students = layout.students || [];
-                const hasCustomNames = students.some(s => !s.id);
+                currentLayout = layout.currentLayout || [];
+                const hasCustomNames = students.some(s => !s.isDemo);
 
                 elements.deskCount.value = layout.deskCount || 50;
                 elements.layoutTitle.textContent = layout.title || 'Classroom Layout';
-                elements.studentNames.value = hasCustomNames ? students.map(s=>s.name).join('\n') : '';
+                elements.studentNames.value = hasCustomNames ? students.filter(s=>!s.isDemo).map(s=>s.name).join('\n') : '';
                 elements.customizeProfiles.classList.toggle('hidden', !hasCustomNames || students.length === 0);
                 
-                renderLayout(students, !hasCustomNames);
+                renderLayout(currentLayout);
                 alert('Layout loaded!');
             }
 
@@ -352,4 +352,4 @@
         });
     </script>
 </body>
-  </html>
+    </html>
