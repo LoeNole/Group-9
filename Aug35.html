@@ -54,17 +54,21 @@
             cursor: pointer;
             margin-right: 10px;
             margin-bottom: 10px;
-            transition: background-color 0.3s;
+            transition: background-color 0.3s, opacity 0.3s;
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
 
-        button:hover {
+        button:hover:not(:disabled) {
             background-color: #7CB342;
         }
         
         .demo-button { background-color: #5DADE2; }
-        .demo-button:hover { background-color: #3498DB; }
+        .demo-button:hover:not(:disabled) { background-color: #3498DB; }
         .customize-button { background-color: #F39C12; }
-        .customize-button:hover { background-color: #D35400; }
+        .customize-button:hover:not(:disabled) { background-color: #D35400; }
 
         .controls {
             margin: 20px 0;
@@ -77,6 +81,11 @@
             grid-template-columns: repeat(5, 1fr) 0.5fr repeat(5, 1fr);
             gap: 10px;
             margin-top: 20px;
+        }
+        /* NEW: Class for preparing the export to boost performance */
+        .export-preparation .seat {
+            transition: none !important;
+            box-shadow: none !important;
         }
 
         .seat {
@@ -93,7 +102,6 @@
         .gap { grid-column: 6; }
         .hidden { display: none !important; }
 
-        /* Modal Styles */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.6); z-index: 100;
@@ -105,16 +113,13 @@
             overflow-y: auto; position: relative;
         }
         .modal-close {
-            position: absolute; top: 10px; right: 15px;
-            font-size: 24px; font-weight: bold; cursor: pointer;
-            border: none; background: none;
+            position: absolute; top: 10px; right: 15px; font-size: 24px; font-weight: bold;
+            cursor: pointer; border: none; background: none;
         }
         .profile-customizer-list li {
             display: flex; align-items: center; justify-content: space-between;
             padding: 10px; border-bottom: 1px solid #eee; list-style: none;
         }
-        .profile-customizer-list li:last-child { border-bottom: none; }
-        .profile-customizer-list span { font-weight: 600; }
         
     </style>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
@@ -157,21 +162,15 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // --- Elements and State ---
             const elements = {
-                studentNames: document.getElementById('studentNames'),
-                deskCount: document.getElementById('deskCount'),
-                classroom: document.getElementById('classroom'),
-                layoutTitle: document.getElementById('layoutTitle'),
-                generateSeats: document.getElementById('generateSeats'),
-                customizeProfiles: document.getElementById('customizeProfiles'),
-                loadSectionA: document.getElementById('loadSectionA'),
-                loadSectionB: document.getElementById('loadSectionB'),
-                saveLayout: document.getElementById('saveLayout'),
-                loadLayout: document.getElementById('loadLayout'),
-                exportPNG: document.getElementById('exportPNG'),
-                exportPDF: document.getElementById('exportPDF'),
-                customizeModal: document.getElementById('customizeModal'),
-                modalClose: document.getElementById('modalClose'),
+                studentNames: document.getElementById('studentNames'), deskCount: document.getElementById('deskCount'),
+                classroom: document.getElementById('classroom'), layoutTitle: document.getElementById('layoutTitle'),
+                generateSeats: document.getElementById('generateSeats'), customizeProfiles: document.getElementById('customizeProfiles'),
+                loadSectionA: document.getElementById('loadSectionA'), loadSectionB: document.getElementById('loadSectionB'),
+                saveLayout: document.getElementById('saveLayout'), loadLayout: document.getElementById('loadLayout'),
+                exportPNG: document.getElementById('exportPNG'), exportPDF: document.getElementById('exportPDF'),
+                customizeModal: document.getElementById('customizeModal'), modalClose: document.getElementById('modalClose'),
                 profileCustomizerList: document.getElementById('profileCustomizerList'),
             };
 
@@ -179,55 +178,40 @@
             let currentLayout = [];
             let currentMode = 'empty';
 
+            // --- Core Logic Functions ---
             const updateUIForMode = () => {
                 const isCustom = currentMode === 'custom' && studentMasterList.length > 0;
                 elements.customizeProfiles.classList.toggle('hidden', !isCustom);
-
-                if (currentMode === 'demo') {
-                    elements.studentNames.value = '';
-                    elements.studentNames.placeholder = 'Demo loaded. Clear this to enter new names.';
-                } else if (currentMode === 'custom'){
-                     elements.layoutTitle.textContent = 'Custom Seating Plan';
-                } else {
-                     elements.layoutTitle.textContent = 'Classroom Layout';
-                }
+                elements.layoutTitle.textContent = currentMode === 'custom' ? 'Custom Seating Plan' : (currentMode === 'demo' ? elements.layoutTitle.textContent : 'Classroom Layout');
             };
             
             const loadDemoSection = (sectionName, imageSeed) => {
                 currentMode = 'demo';
                 elements.layoutTitle.textContent = `${sectionName} - Demo Layout`;
-                studentMasterList = [];
-                for (let i = 1; i <= 50; i++) {
-                    studentMasterList.push({ name: `${sectionName} Student ${i}`, id: imageSeed + i, isDemo: true });
-                }
+                studentMasterList = Array.from({length: 50}, (_, i) => ({ name: `${sectionName} Student ${i + 1}`, id: imageSeed + i, isDemo: true }));
                 currentLayout = [...studentMasterList];
                 elements.deskCount.value = 50;
+                elements.studentNames.value = '';
                 updateUIForMode();
                 renderLayout();
                 alert(`${sectionName} demo loaded. Click 'Generate Random Seating' to shuffle.`);
             };
 
             const generateRandomSeating = () => {
-                const textValue = elements.studentNames.value.trim();
-                if (textValue !== '') {
+                if (elements.studentNames.value.trim() !== '') {
                     currentMode = 'custom';
-                    const namesFromText = textValue.split('\n').map(name => name.trim());
-                    studentMasterList = namesFromText.map(name => {
-                        const existingStudent = studentMasterList.find(s => s.name === name && !s.isDemo);
-                        return existingStudent || { name: name, isDemo: false };
-                    });
+                    const names = elements.studentNames.value.trim().split('\n').map(name => name.trim());
+                    studentMasterList = names.map(name => studentMasterList.find(s => s.name === name && !s.isDemo) || { name, isDemo: false });
                 }
                 
-                if (studentMasterList.length === 0) {
-                    return alert('Please enter student names or load a demo section first.');
-                }
+                if (studentMasterList.length === 0) return alert('Please enter student names or load a demo section first.');
                 
-                updateUIForMode();
                 currentLayout = [...studentMasterList];
                 for (let i = currentLayout.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
                     [currentLayout[i], currentLayout[j]] = [currentLayout[j], currentLayout[i]];
                 }
+                updateUIForMode();
                 renderLayout();
             };
             
@@ -242,45 +226,36 @@
             };
 
             const handleProfileImageUpload = (e) => {
-                if (e.target.tagName !== 'INPUT' || e.target.type !== 'file') return;
-                const file = e.target.files[0];
-                if (!file) return;
-                const studentName = e.target.dataset.name;
-                const student = studentMasterList.find(s => s.name === studentName);
+                const input = e.target;
+                if (input.tagName !== 'INPUT' || input.type !== 'file' || !input.files[0]) return;
+                const student = studentMasterList.find(s => s.name === input.dataset.name);
+                if (!student) return;
                 
-                if (student) {
-                    const reader = new FileReader();
-                    reader.onload = function(event) {
-                        student.imageData = event.target.result;
-                        renderLayout();
-                    };
-                    reader.readAsDataURL(file);
-                }
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    student.imageData = event.target.result;
+                    renderLayout();
+                };
+                reader.readAsDataURL(input.files[0]);
             };
 
             const renderLayout = () => {
                 elements.classroom.innerHTML = '';
                 elements.classroom.className = 'classroom-layout'; 
-                const count = parseInt(elements.deskCount.value) || 50;
+                const count = parseInt(elements.deskCount.value) || 0;
                 let seatCounter = 0;
 
                 for (let i = 0; i < count; i++) {
                     if (seatCounter > 0 && seatCounter % 5 === 0) {
                         elements.classroom.appendChild(document.createElement('div')).className = 'gap';
                     }
-
                     const seat = document.createElement('div');
                     seat.className = 'seat';
                     const student = currentLayout[i];
-
                     if (student) {
-                        if (student.imageData) {
-                             seat.innerHTML = `<img src="${student.imageData}" alt="Profile"><span class="name">${student.name}</span>`;
-                        } else if (student.isDemo) {
-                            seat.innerHTML = `<img src="https://picsum.photos/seed/${student.id}/100" alt="Profile"><span class="name">${student.name}</span>`;
-                        } else {
-                            seat.textContent = student.name;
-                        }
+                        seat.innerHTML = student.imageData ? `<img src="${student.imageData}" alt="Profile"><span class="name">${student.name}</span>`
+                                       : student.isDemo ? `<img src="https://picsum.photos/seed/${student.id}/100" alt="Profile"><span class="name">${student.name}</span>`
+                                       : student.name;
                     } else {
                         seat.textContent = 'Empty';
                         seat.style.backgroundColor = '#eee';
@@ -291,97 +266,73 @@
                 }
             };
             
+            // --- Local Storage & Export ---
             const saveLayout = () => {
                 localStorage.setItem('classroomLayout', JSON.stringify({
-                    deskCount: elements.deskCount.value,
-                    studentMasterList: studentMasterList,
-                    currentLayout: currentLayout,
-                    title: elements.layoutTitle.textContent,
-                    mode: currentMode
+                    deskCount: elements.deskCount.value, studentMasterList, currentLayout,
+                    title: elements.layoutTitle.textContent, mode: currentMode
                 }));
                 alert('Layout saved!');
             };
 
             const loadLayout = () => {
-                const saved = localStorage.getItem('classroomLayout');
+                const saved = JSON.parse(localStorage.getItem('classroomLayout'));
                 if (!saved) return alert('No saved layout found');
                 
-                const layout = JSON.parse(saved);
-                studentMasterList = layout.studentMasterList || [];
-                currentLayout = layout.currentLayout || [];
-                currentMode = layout.mode || 'empty';
-                
-                elements.deskCount.value = layout.deskCount || 50;
-                elements.layoutTitle.textContent = layout.title || 'Classroom Layout';
-                if (currentMode === 'custom') {
-                    elements.studentNames.value = studentMasterList.map(s=>s.name).join('\n');
-                }
+                studentMasterList = saved.studentMasterList || [];
+                currentLayout = saved.currentLayout || [];
+                currentMode = saved.mode || 'empty';
+                elements.deskCount.value = saved.deskCount || 50;
+                elements.layoutTitle.textContent = saved.title || 'Classroom Layout';
+                if (currentMode === 'custom') elements.studentNames.value = studentMasterList.map(s=>s.name).join('\n');
                 
                 updateUIForMode();
                 renderLayout();
                 alert('Layout loaded!');
             };
-            
-            // --- OPTIMIZED EXPORT FUNCTIONS ---
 
-            // Optimization helper: Temporarily remove performance-heavy styles
-            const beforeExport = () => {
-                document.querySelectorAll('.seat').forEach(el => {
-                    el.style.transition = 'none';
-                    el.style.boxShadow = 'none';
-                });
-            };
-            
-            // Optimization helper: Restore styles after export
-            const afterExport = () => {
-                 document.querySelectorAll('.seat').forEach(el => {
-                    el.style.transition = ''; // Reverts to CSS defined transition
-                    el.style.boxShadow = ''; // Reverts to CSS defined shadow
-                });
+            const setButtonLoadingState = (button, isLoading) => {
+                if (!button.dataset.originalText) {
+                    button.dataset.originalText = button.textContent;
+                }
+                button.disabled = isLoading;
+                button.textContent = isLoading ? 'Generating...' : button.dataset.originalText;
             };
 
             const exportAsPNG = () => {
                 if (currentLayout.length === 0) return alert('Please generate a layout first.');
-                beforeExport(); // Apply optimizations
-                
-                const options = {
-                    useCORS: true, // Allows loading external demo images
-                    scale: 1       // OPTIMIZATION: Renders at a lower resolution for speed
-                };
+                setButtonLoadingState(elements.exportPNG, true);
+                elements.classroom.classList.add('export-preparation');
 
-                html2canvas(elements.classroom, options).then(canvas => {
-                    afterExport(); // Restore original styles
+                html2canvas(elements.classroom, { useCORS: true, scale: 1 }).then(canvas => {
                     const link = document.createElement('a');
                     link.download = 'classroom-seating.png';
                     link.href = canvas.toDataURL('image/png');
                     link.click();
+                    elements.classroom.classList.remove('export-preparation');
+                    setButtonLoadingState(elements.exportPNG, false);
                 });
             };
 
             const exportAsPDF = () => {
                 if (currentLayout.length === 0) return alert('Please generate a layout first.');
-                beforeExport(); // Apply optimizations
-                
-                 const options = {
-                    useCORS: true,
-                    scale: 1
-                };
+                setButtonLoadingState(elements.exportPDF, true);
+                elements.classroom.classList.add('export-preparation');
 
-                html2canvas(elements.classroom, options).then(canvas => {
-                    afterExport(); // Restore original styles
-                    const imgData = canvas.toDataURL('image/jpeg', 0.9); // Use JPEG for smaller file size
+                html2canvas(elements.classroom, { useCORS: true, scale: 1 }).then(canvas => {
+                    // FIX: Reverted to PNG for reliability with pdfmake
+                    const imgData = canvas.toDataURL('image/png'); 
                     const docDefinition = {
-                        content: [
-                            { text: elements.layoutTitle.textContent, style: 'header' },
-                            { image: imgData, width: 500, alignment: 'center' }
-                        ],
+                        content: [{ text: elements.layoutTitle.textContent, style: 'header' }, { image: imgData, width: 500, alignment: 'center' }],
                         styles: { header: { fontSize: 18, bold: true, margin: [0, 0, 0, 10], alignment: 'center' } }
                     };
                     pdfMake.createPdf(docDefinition).download('classroom-seating.pdf');
+                    elements.classroom.classList.remove('export-preparation');
+                    setButtonLoadingState(elements.exportPDF, false);
                 });
             };
             
-            // Add all event listeners
+            // --- Event Listeners ---
             elements.generateSeats.addEventListener('click', generateRandomSeating);
             elements.customizeProfiles.addEventListener('click', openCustomizeModal);
             elements.loadSectionA.addEventListener('click', () => loadDemoSection('Section A', 300));
@@ -393,10 +344,10 @@
             elements.modalClose.addEventListener('click', () => elements.customizeModal.classList.add('hidden'));
             elements.profileCustomizerList.addEventListener('change', handleProfileImageUpload);
 
-            // Initial setup on page load
+            // Initial setup
             renderLayout([]);
             updateUIForMode();
         });
     </script>
 </body>
-  </html>
+    </html>
