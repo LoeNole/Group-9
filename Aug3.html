@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classroom Seat Planner</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        h1, h2 {
+            color: #2c3e50;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .input-section, .classroom-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            flex: 1;
+            min-width: 300px;
+        }
+
+        textarea, input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #9ACD32;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #7CB342;
+        }
+
+        .controls {
+            margin: 20px 0;
+        }
+
+        .classroom-layout {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr) 0.5fr repeat(5, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .seat {
+            height: 100px; /* Increased height for image and name */
+            border: 1px solid #ddd;
+            display: flex;
+            /* New flex properties to stack image and name */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: #f9f9f9;
+            border-radius: 8px; /* Rounded corners */
+            transition: all 0.3s;
+            position: relative;
+            box-sizing: border-box;
+            padding: 5px;
+            word-break: break-word;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .seat:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        /* Styles for the profile image inside a seat */
+        .seat img {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 8px;
+        }
+        
+        /* Styles for the name span inside a seat */
+        .seat .name {
+            font-size: 12px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .gap {
+            grid-column: 6; /* Puts the gap in the middle column */
+        }
+        
+    </style>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/vfs_fonts.js"></script>
+</head>
+<body>
+    <h1>Classroom Seat Planner of Group-9</h1>
+    <p>A fair and randomized seating arrangement tool for teachers</p>
+    
+    <div class="container">
+        <div class="input-section">
+            <h2>Student List</h2>
+            <textarea id="studentNames" rows="5" placeholder="Enter student names, one per line"></textarea>
+        </div>
+    </div>
+    
+    <div class="classroom-section">
+        <h2>Classroom Layout</h2>
+        <div>
+            <label for="deskCount">Number of Desks:</label>
+            <input type="number" id="deskCount" min="1" value="50">
+        </div>
+        <div class="controls">
+            <button id="generateSeats">Generate Random Seating</button>
+            <button id="loadDemo">Load Demo Profiles</button>
+            <button id="saveLayout">Save Layout</button>
+            <button id="loadLayout">Load Layout</button>
+            <button id="exportPNG">Export as PNG</button>
+            <button id="exportPDF">Export as PDF</button>
+        </div>
+        <div id="classroom" class="classroom-layout"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const elements = {
+                studentNames: document.getElementById('studentNames'),
+                deskCount: document.getElementById('deskCount'),
+                classroom: document.getElementById('classroom'),
+                generateSeats: document.getElementById('generateSeats'),
+                loadDemo: document.getElementById('loadDemo'),
+                saveLayout: document.getElementById('saveLayout'),
+                loadLayout: document.getElementById('loadLayout'),
+                exportPNG: document.getElementById('exportPNG'),
+                exportPDF: document.getElementById('exportPDF')
+            };
+
+            let students = [];
+
+            elements.studentNames.addEventListener('input', processStudentNames);
+            elements.generateSeats.addEventListener('click', generateRandomSeating);
+            elements.loadDemo.addEventListener('click', loadDemoProfiles);
+            elements.saveLayout.addEventListener('click', saveLayout);
+            elements.loadLayout.addEventListener('click', loadLayout);
+            elements.exportPNG.addEventListener('click', exportAsPNG);
+            elements.exportPDF.addEventListener('click', exportAsPDF);
+
+            function processStudentNames() {
+                students = elements.studentNames.value
+                    .split('\n')
+                    .map(name => name.trim())
+                    .filter(Boolean)
+                    .map(name => ({ name }));
+            }
+
+            // NEW: Function to load the demo profiles into the seats
+            function loadDemoProfiles() {
+                const demoStudents = [];
+                for (let i = 1; i <= 50; i++) {
+                    // Create a student object with a name and a unique ID for the image
+                    demoStudents.push({ name: `Student ${i}`, id: 100 + i });
+                }
+                elements.deskCount.value = 50; // Set desk count for the demo
+                renderLayout(demoStudents, true); // Render with isDemo = true
+                alert('Demo profiles loaded!');
+            }
+
+            function generateRandomSeating() {
+                processStudentNames(); // Ensure student list is up-to-date
+                if (!students.length) return alert('Please enter student names first');
+                
+                let shuffled = [...students];
+                for (let i = shuffled.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                }
+                
+                renderLayout(shuffled, false); // Render with isDemo = false
+            }
+
+            // MODIFIED: This function now handles both text and profile rendering
+            function renderLayout(studentArrangement, isDemo = false) {
+                elements.classroom.innerHTML = '';
+                elements.classroom.className = 'classroom-layout'; 
+                
+                const count = parseInt(elements.deskCount.value) || 50;
+                let seatCounter = 0;
+
+                for (let i = 0; i < count; i++) {
+                    if (seatCounter > 0 && seatCounter % 5 === 0) {
+                        elements.classroom.appendChild(document.createElement('div')).className = 'gap';
+                    }
+
+                    const seat = document.createElement('div');
+                    seat.className = 'seat';
+                    const student = studentArrangement[i];
+
+                    if (student) {
+                        if (isDemo) {
+                            // If it's a demo, render image and name
+                            seat.innerHTML = `
+                                <img src="https://picsum.photos/seed/${student.id}/100" alt="Profile of ${student.name}">
+                                <span class="name">${student.name}</span>
+                            `;
+                        } else {
+                            // Otherwise, just render the name
+                            seat.textContent = student.name;
+                        }
+                    } else {
+                        seat.textContent = 'Empty';
+                        seat.style.backgroundColor = '#eee';
+                    }
+                    elements.classroom.appendChild(seat);
+                    seatCounter++;
+                    
+                    if (seatCounter === 10) {
+                        seatCounter = 0;
+                    }
+                }
+            }
+
+            function saveLayout() {
+                const layout = {
+                    html: elements.classroom.innerHTML,
+                    deskCount: elements.deskCount.value,
+                    // Save the raw student names text
+                    studentNames: elements.studentNames.value 
+                };
+                localStorage.setItem('classroomLayout', JSON.stringify(layout));
+                alert('Layout saved!');
+            }
+
+            function loadLayout() {
+                const saved = localStorage.getItem('classroomLayout');
+                if (!saved) return alert('No saved layout found');
+                
+                const layout = JSON.parse(saved);
+                elements.deskCount.value = layout.deskCount || 50;
+                elements.classroom.innerHTML = layout.html || '';
+                // Restore the student names to the textarea
+                elements.studentNames.value = layout.studentNames || ''; 
+                elements.classroom.className = 'classroom-layout';
+                alert('Layout loaded!');
+            }
+
+            function exportAsPNG() {
+                if (!elements.classroom.children.length) return alert('Please generate a layout first');
+                // Temporarily increase background quality for export
+                const originalBg = elements.classroom.style.backgroundColor;
+                elements.classroom.style.backgroundColor = 'white';
+
+                html2canvas(elements.classroom).then(canvas => {
+                    elements.classroom.style.backgroundColor = originalBg; // Restore original bg
+                    const link = document.createElement('a');
+                    link.download = 'classroom-seating.png';
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                });
+            }
+
+            function exportAsPDF() {
+                if (!elements.classroom.children.length) return alert('Please generate a layout first');
+                const originalBg = elements.classroom.style.backgroundColor;
+                elements.classroom.style.backgroundColor = 'white';
+
+                html2canvas(elements.classroom).then(canvas => {
+                    elements.classroom.style.backgroundColor = originalBg;
+                    const docDefinition = {
+                        content: [
+                            { text: 'Classroom Seating Plan', style: 'header' },
+                            { image: canvas.toDataURL('image/png'), width: 500, alignment: 'center' }
+                        ],
+                        styles: { header: { fontSize: 18, bold: true, margin: [0, 0, 0, 10], alignment: 'center' } }
+                    };
+                    pdfMake.createPdf(docDefinition).download('classroom-seating.pdf');
+                });
+            }
+
+            // Initial call to render an empty layout on page load
+            renderLayout([]);
+        });
+    </script>
+</body>
+</html>
