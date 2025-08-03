@@ -177,15 +177,24 @@
         renderSeats(shuffled);
     }
 
-    function renderSeats(studentArrangement) {
+        function renderSeats(studentArrangement) {
         elements.classroom.innerHTML = '';
         const count = parseInt(elements.deskCount.value) || 30;
-        
+        let seatCounter = 0;
+
+        // This loop now handles the layout logic
         for (let i = 0; i < count; i++) {
+            // After every 5 seats are placed on the left side of a row, insert a gap.
+            if (seatCounter > 0 && seatCounter % 5 === 0) {
+                const gap = document.createElement('div');
+                gap.className = 'gap'; // This class is styled by the new CSS
+                elements.classroom.appendChild(gap);
+            }
+
             const seat = document.createElement('div');
             seat.className = 'seat';
             const student = studentArrangement[i];
-            
+
             if (student) {
                 seat.textContent = student.name;
             } else {
@@ -193,9 +202,15 @@
                 seat.style.backgroundColor = '#eee';
             }
             elements.classroom.appendChild(seat);
-        }
-    }
+            seatCounter++;
 
+            // This logic ensures that after 10 seats (5 left, 5 right), the next row starts correctly.
+            if (seatCounter === 10) {
+                seatCounter = 0;
+            }
+        }
+        }
+            
     function saveLayout() {
         const layout = {
             students,
