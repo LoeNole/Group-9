@@ -3,39 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Section Demo with Images</title>
+    <title>Classroom Seat Planner</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f5f5;
+            line-height: 1.6;
             color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
             padding: 20px;
+            background-color: #f5f5f5;
         }
 
-        h1 {
-            text-align: center;
+        h1, h2 {
             color: #2c3e50;
-            margin-bottom: 40px;
         }
 
-        .section {
-            background-color: white;
-            padding: 25px;
-            margin-bottom: 30px;
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .input-section, .classroom-section {
+            background: white;
+            padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            flex: 1;
+            min-width: 300px;
         }
 
-        .section h2 {
+        textarea, input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #9ACD32;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #7CB342;
+        }
+
+        .controls {
+            margin: 20px 0;
+        }
+
+        /* Styles for the Seating Chart */
+        .classroom-layout {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr) 0.5fr repeat(5, 1fr);
+            gap: 5px;
+            margin-top: 20px;
+        }
+
+        .seat {
+            width: 100%;
+            height: 80px;
+            border: 1px solid #ddd;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            transition: all 0.3s;
+            position: relative;
+            box-sizing: border-box;
+            word-break: break-word;
+        }
+
+        .seat:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        .gap {
+            grid-column: 6;
+        }
+        
+        /* Styles for the Demo Sections */
+        .demo-section {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .demo-section h2 {
             color: #34495e;
             border-bottom: 2px solid #9ACD32;
             padding-bottom: 10px;
             margin-top: 0;
+            font-size: 1.5em;
         }
-
+        
         .profile-grid {
             display: grid;
-            /* Creates a responsive grid with columns that are at least 120px wide */
             grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
             gap: 20px;
             margin-top: 20px;
@@ -43,9 +120,9 @@
 
         .profile-box {
             display: flex;
-            flex-direction: column; /* Stacks items vertically */
-            align-items: center;   /* Centers items horizontally */
-            justify-content: center; /* Centers items vertically */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             padding: 15px;
             border: 1px solid #ddd;
             border-radius: 8px;
@@ -62,9 +139,9 @@
         .profile-box img {
             width: 80px;
             height: 80px;
-            border-radius: 50%; /* Makes the image circular */
-            object-fit: cover;   /* Ensures the image covers the area without distortion */
-            margin-bottom: 12px; /* Space between image and name */
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 12px;
             border: 3px solid #fff;
             box-shadow: 0 2px 5px rgba(0,0,0,0.15);
         }
@@ -73,70 +150,220 @@
             font-size: 14px;
             font-weight: 600;
             color: #555;
-            word-break: break-word; /* Prevents long names from overflowing */
+            word-break: break-word;
         }
+
     </style>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/vfs_fonts.js"></script>
 </head>
 <body>
-
-    <h1>Class Sections Demo</h1>
-
-    <!-- Section A Container -->
-    <div class="section">
-        <h2>Section A</h2>
-        <div class="profile-grid" id="section-a-grid">
-            <!-- Student profiles for Section A will be generated by JavaScript here -->
+    <h1>Classroom Seat Planner of Group-9</h1>
+    <p>A fair and randomized seating arrangement tool for teachers</p>
+    
+    <div class="container">
+        <div class="input-section">
+            <h2>Student List</h2>
+            <textarea id="studentNames" rows="5" placeholder="Enter student names, one per line"></textarea>
         </div>
     </div>
-
-    <!-- Section B Container -->
-    <div class="section">
-        <h2>Section B</h2>
-        <div class="profile-grid" id="section-b-grid">
-            <!-- Student profiles for Section B will be generated by JavaScript here -->
+    
+    <div class="classroom-section">
+        <h2>Classroom Layout</h2>
+        <div>
+            <label for="deskCount">Number of Desks:</label>
+            <input type="number" id="deskCount" min="1" value="30">
         </div>
+        <div class="controls">
+            <button id="generateSeats">Generate Random Seating</button>
+            <button id="loadDemo">Load Demo Sections</button> <!-- NEW BUTTON -->
+            <button id="saveLayout">Save Layout</button>
+            <button id="loadLayout">Load Layout</button>
+            <button id="exportPNG">Export as PNG</button>
+            <button id="exportPDF">Export as PDF</button>
+        </div>
+        <!-- This div will be used for both the seating chart and the demo -->
+        <div id="classroom" class=""></div> 
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const sectionAGrid = document.getElementById('section-a-grid');
-            const sectionBGrid = document.getElementById('section-b-grid');
+            // Cache DOM elements
+            const elements = {
+                studentNames: document.getElementById('studentNames'),
+                deskCount: document.getElementById('deskCount'),
+                classroom: document.getElementById('classroom'),
+                generateSeats: document.getElementById('generateSeats'),
+                loadDemo: document.getElementById('loadDemo'), // New button element
+                saveLayout: document.getElementById('saveLayout'),
+                loadLayout: document.getElementById('loadLayout'),
+                exportPNG: document.getElementById('exportPNG'),
+                exportPDF: document.getElementById('exportPDF')
+            };
 
-            // Function to create a student profile element
-            function createProfile(studentName, studentNumber) {
-                const profileBox = document.createElement('div');
-                profileBox.className = 'profile-box';
+            // Data storage
+            let students = [];
 
-                const image = document.createElement('img');
-                // Use a placeholder image service. The number makes each image unique.
-                image.src = `https://picsum.photos/seed/${studentNumber}/100`;
-                image.alt = `Profile picture of ${studentName}`;
+            // Event listeners
+            elements.studentNames.addEventListener('input', processStudentNames);
+            elements.generateSeats.addEventListener('click', generateRandomSeating);
+            elements.loadDemo.addEventListener('click', loadDemoSections); // New event listener
+            elements.saveLayout.addEventListener('click', saveLayout);
+            elements.loadLayout.addEventListener('click', loadLayout);
+            elements.exportPNG.addEventListener('click', exportAsPNG);
+            elements.exportPDF.addEventListener('click', exportAsPDF);
 
-                const nameSpan = document.createElement('span');
-                nameSpan.className = 'name';
-                nameSpan.textContent = studentName;
+            function processStudentNames() {
+                students = elements.studentNames.value
+                    .split('\n')
+                    .map(name => name.trim())
+                    .filter(Boolean)
+                    .map(name => ({ name }));
+            }
+            
+            // --- NEW FUNCTION TO LOAD THE DEMO ---
+            function loadDemoSections() {
+                // Clear any existing content and remove the seating chart layout class
+                elements.classroom.innerHTML = '';
+                elements.classroom.className = ''; // Reset class to default
 
-                profileBox.appendChild(image);
-                profileBox.appendChild(nameSpan);
+                // Helper function to create a profile box
+                const createProfile = (studentName, studentNumber) => {
+                    const profileBox = document.createElement('div');
+                    profileBox.className = 'profile-box';
+                    profileBox.innerHTML = `
+                        <img src="https://picsum.photos/seed/${studentNumber}/100" alt="Profile picture of ${studentName}">
+                        <span class="name">${studentName}</span>
+                    `;
+                    return profileBox;
+                };
 
-                return profileBox;
+                // Helper function to create a whole section
+                const createSection = (sectionName, startId) => {
+                    const sectionDiv = document.createElement('div');
+                    sectionDiv.className = 'demo-section';
+
+                    const title = document.createElement('h2');
+                    title.textContent = sectionName;
+                    
+                    const grid = document.createElement('div');
+                    grid.className = 'profile-grid';
+
+                    for (let i = 1; i <= 50; i++) {
+                        grid.appendChild(createProfile(`${sectionName} Student ${i}`, startId + i));
+                    }
+                    
+                    sectionDiv.appendChild(title);
+                    sectionDiv.appendChild(grid);
+                    elements.classroom.appendChild(sectionDiv);
+                };
+
+                // Create and append Section A and Section B
+                createSection('Section A', 100); // Using 100 as a starting seed for images
+                createSection('Section B', 200); // Using 200 to ensure different images
+                
+                alert('Demo sections loaded!');
             }
 
-            // --- Generate 50 profiles for Section A ---
-            for (let i = 1; i <= 50; i++) {
-                // We use a unique number for the image seed
-                const profile = createProfile(`Student A-${i}`, i);
-                sectionAGrid.appendChild(profile);
+
+            function generateRandomSeating() {
+                if (!students.length) return alert('Please enter student names first');
+                
+                let shuffled = [...students];
+                // Fisher-Yates shuffle
+                for (let i = shuffled.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                }
+                
+                renderSeats(shuffled);
             }
 
-            // --- Generate 50 profiles for Section B ---
-            for (let i = 1; i <= 50; i++) {
-                // Add an offset to the image seed to get different images from Section A
-                const profile = createProfile(`Student B-${i}`, i + 50);
-                sectionBGrid.appendChild(profile);
+            function renderSeats(studentArrangement) {
+                // Clear content and set the correct class for the seating chart
+                elements.classroom.innerHTML = '';
+                elements.classroom.className = 'classroom-layout'; 
+                
+                const count = parseInt(elements.deskCount.value) || 30;
+                let seatCounter = 0;
+
+                for (let i = 0; i < count; i++) {
+                    if (seatCounter > 0 && seatCounter % 5 === 0) {
+                        const gap = document.createElement('div');
+                        gap.className = 'gap';
+                        elements.classroom.appendChild(gap);
+                    }
+
+                    const seat = document.createElement('div');
+                    seat.className = 'seat';
+                    const student = studentArrangement[i];
+
+                    if (student) {
+                        seat.textContent = student.name;
+                    } else {
+                        seat.textContent = 'Empty';
+                        seat.style.backgroundColor = '#eee';
+                    }
+                    elements.classroom.appendChild(seat);
+                    seatCounter++;
+                    
+                    if (seatCounter === 10) {
+                        seatCounter = 0;
+                    }
+                }
+            }
+
+            function saveLayout() {
+                const layout = {
+                    students,
+                    deskCount: elements.deskCount.value,
+                    html: elements.classroom.innerHTML,
+                    // also save the class to restore either demo or seat layout
+                    layoutClass: elements.classroom.className 
+                };
+                localStorage.setItem('classroomLayout', JSON.stringify(layout));
+                alert('Layout saved!');
+            }
+
+            function loadLayout() {
+                const saved = localStorage.getItem('classroomLayout');
+                if (!saved) return alert('No saved layout found');
+                
+                const layout = JSON.parse(saved);
+                students = layout.students || [];
+                elements.deskCount.value = layout.deskCount || 30;
+                elements.studentNames.value = students.map(s => s.name).join('\n');
+                elements.classroom.innerHTML = layout.html || '';
+                // Restore the correct class
+                elements.classroom.className = layout.layoutClass || ''; 
+                alert('Layout loaded!');
+            }
+
+            function exportAsPNG() {
+                if (!elements.classroom.children.length) return alert('Please generate a layout first');
+                html2canvas(elements.classroom).then(canvas => {
+                    const link = document.createElement('a');
+                    link.download = 'classroom-layout.png';
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                });
+            }
+
+            function exportAsPDF() {
+                if (!elements.classroom.children.length) return alert('Please generate a layout first');
+                html2canvas(elements.classroom).then(canvas => {
+                    const docDefinition = {
+                        content: [
+                            { text: 'Classroom Layout Plan', style: 'header' },
+                            { image: canvas.toDataURL('image/png'), width: 500 }
+                        ],
+                        styles: { header: { fontSize: 18, bold: true, margin: [0, 0, 0, 10] } }
+                    };
+                    pdfMake.createPdf(docDefinition).download('classroom-layout.pdf');
+                });
             }
         });
     </script>
-
 </body>
-</html>
+    </html>
