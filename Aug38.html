@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classroom Seat Planner</title>
+    <!-- New Font from Google -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- NEW STYLING FOR THE ENTIRE PAGE --- */
+        
+        :root {
+            --bg-color: #FFFBEF; /* Soft cream background */
+            --grid-line-color: rgba(133, 146, 158, 0.2); /* Faint grid lines */
+            --paper-color: #FFFFFF;
+            --text-color: #4A4A4A; /* Softer than pure black */
+            --border-color: #D5D8DC;
+            --primary-accent: #E57373; /* Muted terracotta for key actions */
+            --secondary-accent: #81D4FA; /* Soft blue for demos */
+            --tertiary-accent: #7D8A97; /* Muted gray for other actions */
+        }
+        
+        body {
+            font-family: 'Patrick Hand', cursive; /* The new handwritten font */
+            font-size: 18px;
+            color: var(--text-color);
+            /* Creating the grid paper background with CSS */
+            background-color: var(--bg-color);
+            background-image:
+                linear-gradient(var(--grid-line-color) 1px, transparent 1px),
+                linear-gradient(to right, var(--grid-line-color) 1px, transparent 1px);
+            background-size: 20px 20px;
+            padding: 20px;
+        }
+
+        h1, h2 {
+            color: var(--text-color);
+            text-align: center;
+            font-size: 2.5em;
+        }
+        h2 { 
+            text-align: left; 
+            font-size: 2em;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .container, .classroom-section {
+            background: var(--paper-color);
+            padding: 25px;
+            border-radius: 8px;
+            /* Softer, more realistic shadow */
+            box-shadow: 0 4px 15px rgba(0,0,0,0.07);
+            border: 1px solid #EAECEE;
+            flex: 1;
+            min-width: 300px;
+        }
+        .container { margin-bottom: 20px; }
+
+        textarea, input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-family: inherit;
+            font-size: 1em;
+            background-color: #FDFEFE;
+        }
+
+        button, .demo-select {
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-family: inherit;
+            font-size: 1em;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* New Button Colors */
+        #generateSeats { background-color: var(--primary-accent); }
+        .customize-button { background-color: #F8C471; } /* Soft yellow */
+        .demo-select { background-color: var(--secondary-accent); padding-right: 30px; }
+        #saveLayout, #loadLayout { background-color: var(--tertiary-accent); }
+        #exportPNG, #exportPDF { background-color: #A9DFBF; } /* Soft green */
+
+        .controls {
+            margin: 20px 0 10px 0;
+            padding-top: 20px;
+            border-top: 1px dashed var(--border-color);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .classroom-layout {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr) 0.5fr repeat(5, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .export-preparation .seat {
+            transition: none !important;
+            box-shadow: none !important;
+        }
+
+        .seat {
+            height: 100px; 
+            border: 1px solid var(--border-color); 
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center; 
+            background-color: #FDFEFE;
+            border-radius: 5px; 
+            transition: all 0.3s; 
+            position: relative;
+            box-sizing: border-box; padding: 5px; word-break: break-word;
+            font-size: 1em; font-weight: normal;
+        }
+        
+        .seat:hover { 
+            transform: scale(1.05); 
+            border-color: var(--primary-accent);
+        }
+        .seat img { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; margin-bottom: 8px; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .seat .name { font-size: 0.8em; text-align: center; }
+        .gap { grid-column: 6; }
+        .hidden { display: none !important; }
+
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4); 
+            backdrop-filter: blur(3px); /* Frosted glass effect */
+            z-index: 100;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background: var(--paper-color); padding: 30px; border-radius: 8px;
+            width: 90%; max-width: 500px; max-height: 80vh;
+            overflow-y: auto; position: relative;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .modal-close {
+            position: absolute; top: 10px; right: 15px; font-size: 28px;
+            cursor: pointer; border: none; background: none; color: var(--tertiary-accent);
+        }
+        .profile-customizer-list li {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px; border-bottom: 1px solid #f0f0f0; list-style: none;
+        }
+        
+    </style>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.68/vfs_fonts.js"></script>
+</head>
+<body>
+    <h1>Classroom Seat Planner</h1>
+    
+    <div class="container">
+        <div class="input-section">
+            <h2>Student List</h2>
+            <textarea id="studentNames" rows="5" placeholder="Enter student names..."></textarea>
+        </div>
+    </div>
+    
+    <div class="classroom-section">
+        <h2 id="layoutTitle">Classroom Layout</h2>
+        <div><label for="deskCount">Number of Desks:</label><input type="number" id="deskCount" min="1" value="50"></div>
+        <div class="controls">
+            <button id="generateSeats">Generate Seating</button>
+            <button id="customizeProfiles" class="customize-button hidden">Customize Profiles</button>
+            <select id="demoSelector" class="demo-select">
+                <option value="" disabled selected>Load Demo...</option>
+                <option value="A">Section A</option>
+                <option value="B">Section B</option>
+            </select>
+            <button id="saveLayout">Save</button>
+            <button id="loadLayout">Load</button>
+            <button id="exportPNG">Export PNG</button>
+            <button id="exportPDF">Export PDF</button>
+        </div>
+        <div id="classroom" class="classroom-layout"></div>
+    </div>
+
+    <div id="customizeModal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button id="modalClose" class="modal-close">×</button>
+            <h3>Customize Student Profiles</h3>
+            <ul id="profileCustomizerList" class="profile-customizer-list"></ul>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- Elements and State ---
+            const elements = {
+                studentNames: document.getElementById('studentNames'), deskCount: document.getElementById('deskCount'),
+                classroom: document.getElementById('classroom'), layoutTitle: document.getElementById('layoutTitle'),
+                generateSeats: document.getElementById('generateSeats'), customizeProfiles: document.getElementById('customizeProfiles'),
+                demoSelector: document.getElementById('demoSelector'),
+                saveLayout: document.getElementById('saveLayout'), loadLayout: document.getElementById('loadLayout'),
+                exportPNG: document.getElementById('exportPNG'), exportPDF: document.getElementById('exportPDF'),
+                customizeModal: document.getElementById('customizeModal'), modalClose: document.getElementById('modalClose'),
+                profileCustomizerList: document.getElementById('profileCustomizerList'),
+            };
+
+            let studentMasterList = [];
+            let currentLayout = [];
+            let currentMode = 'empty';
+
+            // --- Core Logic Functions ---
+            const updateUIForMode = () => {
+                const isCustom = currentMode === 'custom' && studentMasterList.length > 0;
+                elements.customizeProfiles.classList.toggle('hidden', !isCustom);
+                elements.layoutTitle.textContent = currentMode === 'custom' ? 'Custom Seating Plan' : (currentMode === 'demo' ? elements.layoutTitle.textContent : 'Classroom Layout');
+            };
+            
+            const loadDemoSection = (sectionName, imageSeed) => {
+                currentMode = 'demo';
+                elements.layoutTitle.textContent = `${sectionName} Demo`;
+                studentMasterList = Array.from({length: 50}, (_, i) => ({ name: `${sectionName} Student ${i + 1}`, id: imageSeed + i, isDemo: true }));
+                currentLayout = [...studentMasterList];
+                elements.deskCount.value = 50;
+                elements.studentNames.value = '';
+                updateUIForMode();
+                renderLayout();
+                alert(`${sectionName} demo loaded. Click 'Generate Seating' to shuffle.`);
+            };
+
+            const handleDemoSelection = (e) => {
+                const selectedValue = e.target.value;
+                if (selectedValue === 'A') loadDemoSection('Section A', 300);
+                else if (selectedValue === 'B') loadDemoSection('Section B', 400);
+                e.target.value = "";
+            };
+
+            const generateRandomSeating = () => {
+                if (elements.studentNames.value.trim() !== '') {
+                    currentMode = 'custom';
+                    const names = elements.studentNames.value.trim().split('\n').map(name => name.trim());
+                    studentMasterList = names.map(name => studentMasterList.find(s => s.name === name && !s.isDemo) || { name, isDemo: false });
+                }
+                
+                if (studentMasterList.length === 0) return alert('Please enter student names or load a demo first.');
+                
+                currentLayout = [...studentMasterList];
+                for (let i = currentLayout.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [currentLayout[i], currentLayout[j]] = [currentLayout[j], currentLayout[i]];
+                }
+                updateUIForMode();
+                renderLayout();
+            };
+            
+            const openCustomizeModal = () => {
+                elements.profileCustomizerList.innerHTML = '';
+                studentMasterList.filter(s => !s.isDemo).forEach(student => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<span>${student.name}</span><input type="file" accept="image/*" data-name="${student.name}" style="font-size: 12px;">`;
+                    elements.profileCustomizerList.appendChild(li);
+                });
+                elements.customizeModal.classList.remove('hidden');
+            };
+
+            const handleProfileImageUpload = (e) => {
+                const input = e.target;
+                if (input.tagName !== 'INPUT' || input.type !== 'file' || !input.files[0]) return;
+                const student = studentMasterList.find(s => s.name === input.dataset.name);
+                if (!student) return;
+                
+                const reader = new FileReader();
+                reader.onload = (event) => { student.imageData = event.target.result; renderLayout(); };
+                reader.readAsDataURL(input.files[0]);
+            };
+
+            const renderLayout = () => {
+                elements.classroom.innerHTML = '';
+                elements.classroom.className = 'classroom-layout'; 
+                const count = parseInt(elements.deskCount.value) || 0;
+                let seatCounter = 0;
+
+                for (let i = 0; i < count; i++) {
+                    if (seatCounter > 0 && seatCounter % 5 === 0) {
+                        elements.classroom.appendChild(document.createElement('div')).className = 'gap';
+                    }
+                    const seat = document.createElement('div');
+                    seat.className = 'seat';
+                    const student = currentLayout[i];
+                    if (student) {
+                        seat.innerHTML = student.imageData ? `<img src="${student.imageData}" alt="Profile"><span class="name">${student.name}</span>`
+                                       : student.isDemo ? `<img src="https://picsum.photos/seed/${student.id}/100" alt="Profile"><span class="name">${student.name}</span>`
+                                       : student.name;
+                    } else {
+                        seat.textContent = 'Empty';
+                        seat.style.backgroundColor = '#F8F9F9';
+                    }
+                    elements.classroom.appendChild(seat);
+                    seatCounter++;
+                    if (seatCounter === 10) seatCounter = 0;
+                }
+            };
+            
+            // --- Local Storage & Export ---
+            const saveLayout = () => {
+                localStorage.setItem('classroomLayout', JSON.stringify({
+                    deskCount: elements.deskCount.value, studentMasterList, currentLayout,
+                    title: elements.layoutTitle.textContent, mode: currentMode
+                }));
+                alert('Layout saved!');
+            };
+
+            const loadLayout = () => {
+                const saved = JSON.parse(localStorage.getItem('classroomLayout'));
+                if (!saved) return alert('No saved layout found');
+                
+                studentMasterList = saved.studentMasterList || [];
+                currentLayout = saved.currentLayout || [];
+                currentMode = saved.mode || 'empty';
+                elements.deskCount.value = saved.deskCount || 50;
+                elements.layoutTitle.textContent = saved.title || 'Classroom Layout';
+                if (currentMode === 'custom') elements.studentNames.value = studentMasterList.map(s=>s.name).join('\n');
+                
+                updateUIForMode();
+                renderLayout();
+                alert('Layout loaded!');
+            };
+
+            const setButtonLoadingState = (button, isLoading) => {
+                if (!button.dataset.originalText) button.dataset.originalText = button.textContent;
+                button.disabled = isLoading;
+                button.textContent = isLoading ? 'Generating...' : button.dataset.originalText;
+            };
+
+            const exportToFile = (isPNG) => {
+                if (currentLayout.length === 0) return alert('Please generate a layout first.');
+                const button = isPNG ? elements.exportPNG : elements.exportPDF;
+                setButtonLoadingState(button, true);
+                elements.classroom.classList.add('export-preparation');
+
+                setTimeout(() => { // Timeout allows UI to update before heavy task
+                    html2canvas(elements.classroom, { useCORS: true, scale: 2, backgroundColor: 'var(--bg-color)' }).then(canvas => {
+                        if (isPNG) {
+                            const link = document.createElement('a');
+                            link.download = 'classroom-seating.png';
+                            link.href = canvas.toDataURL('image/png');
+                            link.click();
+                        } else {
+                            const imgData = canvas.toDataURL('image/png'); 
+                            const docDefinition = {
+                                content: [{ text: elements.layoutTitle.textContent, style: 'header' }, { image: imgData, width: 500, alignment: 'center' }],
+                                styles: { header: { fontSize: 18, bold: true, margin: [0, 0, 0, 10], alignment: 'center' } }
+                            };
+                            pdfMake.createPdf(docDefinition).download('classroom-seating.pdf');
+                        }
+                    }).catch(err => {
+                        console.error("Export failed:", err);
+                        alert('An error occurred during the export.');
+                    }).finally(() => {
+                        elements.classroom.classList.remove('export-preparation');
+                        setButtonLoadingState(button, false);
+                    });
+                }, 100);
+            };
+            
+            // --- Event Listeners ---
+            elements.generateSeats.addEventListener('click', generateRandomSeating);
+            elements.customizeProfiles.addEventListener('click', openCustomizeModal);
+            elements.demoSelector.addEventListener('change', handleDemoSelection);
+            elements.saveLayout.addEventListener('click', saveLayout);
+            elements.loadLayout.addEventListener('click', loadLayout);
+            elements.exportPNG.addEventListener('click', () => exportToFile(true));
+            elements.exportPDF.addEventListener('click', () => exportToFile(false));
+            elements.modalClose.addEventListener('click', () => elements.customizeModal.classList.add('hidden'));
+            elements.profileCustomizerList.addEventListener('change', handleProfileImageUpload);
+
+            // Initial setup
+            renderLayout([]);
+            updateUIForMode();
+        });
+    </script>
+</body>
+  </html>
